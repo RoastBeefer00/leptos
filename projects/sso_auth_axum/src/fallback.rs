@@ -21,10 +21,9 @@ pub async fn file_and_error_handler(
         res.into_response()
     } else {
         leptos::logging::log!("{:?}:{}", res.status(), uri);
-        let handler =
-            leptos_axum::render_app_to_stream(options.to_owned(), || {
-                error_template(RwSignal::new(leptos::Errors::default()))
-            });
+        let handler = leptos_axum::render_app_to_stream(|| {
+            error_template(RwSignal::new(leptos::error::Errors::default()))
+        });
         handler(req).await.into_response()
     }
 }

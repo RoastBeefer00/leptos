@@ -22,7 +22,7 @@ simple_logger = "5.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 axum = { version = "0.7.0", optional = true, features = ["macros"] }
-tower = { version = "0.4.0", optional = true }
+tower = { version = "0.5.2", optional = true, features = ["util"] }
 tower-http = { version = "0.5.0", features = ["fs"], optional = true }
 tokio = { version = "1.22", features = ["full"], optional = true }
 http = { version = "1" }
@@ -33,16 +33,21 @@ sqlx = { version = "0.8.0", features = [
 thiserror = "1.0"
 wasm-bindgen = "0.2.0"
 axum_session_auth = { version = "0.14.0", features = [
-  "sqlite-rustls",
 ], optional = true }
 axum_session = { version = "0.14.0", features = [
-  "sqlite-rustls",
 ], optional = true }
 async-trait = { version = "0.1.64", optional = true }
 reqwest = { version = "0.12.0", optional = true, features = ["json"] }
+axum_session_sqlx = { version = "0.3.0", optional = true, features = ["sqlite", "tls-rustls"] }
+dotenv = { version = "0.15.0", optional = true }
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+default = ["ssr"]
+hydrate = [
+  "leptos/hydrate",
+  # "leptos_meta/hydrate",
+  # "leptos_router/hydrate"
+]
 ssr = [
   "dep:serde_json",
   "dep:axum",
@@ -51,11 +56,13 @@ ssr = [
   "dep:tokio",
   "dep:reqwest",
   "dep:oauth2",
+  "dep:axum_session_sqlx",
   "dep:axum_session_auth",
   "dep:axum_session",
   "dep:async-trait",
   "dep:sqlx",
   "dep:rand",
+  "dep:dotenv",
   "leptos/ssr",
   "leptos_meta/ssr",
   "leptos_router/ssr",

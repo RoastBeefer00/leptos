@@ -5,15 +5,22 @@ pub mod fallback;
 pub mod sign_in_sign_up;
 #[cfg(feature = "ssr")]
 pub mod state;
-use leptos::{leptos_dom::helpers::TimeoutHandle, *};
+pub use leptos::prelude::*;
+use leptos::task::spawn_local;
+// use leptos::{
+//     leptos_dom::helpers::TimeoutHandle, prelude::RwSignal, task::spawn_local,
+// };
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::{
+    components::{Route, Router, Routes},
+    *,
+};
 use sign_in_sign_up::*;
 
 #[cfg(feature = "ssr")]
 mod ssr_imports {
     pub use crate::auth::ssr_imports::{AuthSession, SqlRefreshToken};
-    pub use leptos::{use_context, ServerFnError};
+    pub use leptos::prelude::*;
     pub use oauth2::{reqwest::async_http_client, TokenResponse};
     pub use sqlx::SqlitePool;
 
@@ -85,9 +92,9 @@ pub fn App() -> impl IntoView {
 
     let display_email =
         move || email.get().unwrap_or(String::from("No email to display"));
-    let refresh_token = create_server_action::<RefreshToken>();
+    let refreshtoken = ServerAction::<RefreshToken>::new();
 
-    create_effect(move |handle: Option<Option<TimeoutHandle>>| {
+    Effect::new(move |handle: Option<Option<TimeoutHandle>>| {
         // If this effect is called, try to cancel the previous handle.
         if let Some(prev_handle) = handle.flatten() {
             prev_handle.clear();
@@ -97,9 +104,12 @@ pub fn App() -> impl IntoView {
         if expires_in != 0 && email.get_untracked().is_some() {
             let handle = set_timeout_with_handle(
                 move || {
-                    refresh_token.dispatch(RefreshToken {
-                        email: email.get_untracked().unwrap(),
-                    })
+                    spawn_local(async move {
+                        // refresh_token(email.get_untracked().unwrap()).await;
+                        refreshtoken.dispatch(RefreshToken {
+                            email: email.get_untracked().unwrap(),
+                        });
+                    });
                 },
                 std::time::Duration::from_secs(
                     // Google tokens last 3599 seconds, so we'll get a refresh token every 14 seconds.
@@ -113,8 +123,8 @@ pub fn App() -> impl IntoView {
         }
     });
 
-    create_effect(move |_| {
-        if let Some(Ok(expires_in)) = refresh_token.value().get() {
+    Effect::new(move |_| {
+        if let Some(Ok(expires_in)) = refreshtoken.value().get() {
             rw_expires_in.set(expires_in);
         }
     });
@@ -125,8 +135,8 @@ pub fn App() -> impl IntoView {
         <Title text="SSO Auth Axum"/>
         <Router>
             <main>
-                <Routes>
-                    <Route path="" view=move || {
+                <Routes fallback=|| "Not found">
+                    <Route path=path!("") view=move || {
                         view!{
                             {display_email}
                             <Show when=move || email.get().is_some() fallback=||view!{<SignIn/>}>
@@ -134,18 +144,9 @@ pub fn App() -> impl IntoView {
                             </Show>
                             }
                         }/>
-                    <Route path="g_auth" view=||view!{<HandleGAuth/>}/>
+                    <Route path=path!("g_auth") view=||view!{<HandleGAuth/>}/>
                 </Routes>
             </main>
         </Router>
     }
-}
-
-#[cfg(feature = "hydrate")]
-#[wasm_bindgen::prelude::wasm_bindgen]
-pub fn hydrate() {
-    _ = console_log::init_with_level(log::Level::Debug);
-    console_error_panic_hook::set_once();
-
-    leptos::mount_to_body(App);
 }

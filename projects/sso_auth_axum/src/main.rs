@@ -9,7 +9,11 @@ use axum::{
 };
 use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
-use leptos::{get_configuration, logging::log, provide_context, view};
+use axum_session_sqlx::SessionSqlitePool;
+use dotenv::dotenv;
+use leptos::config::get_configuration;
+use leptos::prelude::provide_context;
+use leptos::{logging::log, view};
 use leptos_axum::{
     generate_route_list, handle_server_fns_with_context, LeptosRoutes,
 };
@@ -40,11 +44,13 @@ async fn server_fn_handler(
 pub async fn leptos_routes_handler(
     auth_session: AuthSession,
     State(app_state): State<AppState>,
-    axum::extract::State(option): axum::extract::State<leptos::LeptosOptions>,
+    axum::extract::State(option): axum::extract::State<
+        leptos::config::LeptosOptions,
+    >,
     request: Request<AxumBody>,
 ) -> axum::response::Response {
     let handler = leptos_axum::render_app_async_with_context(
-        option.clone(),
+        // option.clone(),
         move || {
             provide_context(app_state.clone());
             provide_context(auth_session.clone());
@@ -58,6 +64,7 @@ pub async fn leptos_routes_handler(
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     simple_logger::init_with_level(log::Level::Info)
         .expect("couldn't initialize logging");
 

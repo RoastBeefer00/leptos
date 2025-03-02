@@ -1,8 +1,9 @@
-use leptos::{view, Errors, For, IntoView, RwSignal, SignalGet, View};
+use leptos::prelude::*;
+// use leptos::{view, Errors, For, IntoView, RwSignal, SignalGet, View};
 
 // A basic function to display errors served by the error boundaries. Feel free to do more complicated things
 // here than just displaying them
-pub fn error_template(errors: RwSignal<Errors>) -> View {
+pub fn error_template(errors: RwSignal<Errors>) -> impl IntoView {
     view! {
       <h1>"Errors"</h1>
       <For
