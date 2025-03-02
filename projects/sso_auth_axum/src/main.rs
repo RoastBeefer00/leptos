@@ -19,7 +19,8 @@ use leptos_axum::{
 };
 use sqlx::sqlite::SqlitePoolOptions;
 use sso_auth_axum::{
-    auth::*, fallback::file_and_error_handler, state::AppState,
+    auth::*, fallback::file_and_error_handler, state::AppState, AutoReload,
+    ElementChild, HydrationScripts,
 };
 
 async fn server_fn_handler(
@@ -56,7 +57,22 @@ pub async fn leptos_routes_handler(
             provide_context(auth_session.clone());
             provide_context(app_state.pool.clone());
         },
-        move || view! {  <sso_auth_axum::App/> },
+        move || {
+            view! {
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <meta charset="utf-8"/>
+                        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                        // <AutoReload options=option.clone() />
+                        // <HydrationScripts options=option />
+                    </head>
+                    <body>
+                        <sso_auth_axum::App/>
+                    </body>
+                </html>
+            }
+        },
     );
 
     handler(request).await.into_response()
