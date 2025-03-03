@@ -23,7 +23,7 @@ pub mod ssr_imports {
 }
 
 #[server]
-pub async fn google_sso() -> Result<String, ServerFnError> {
+pub async fn google_sso() -> Result<(), ServerFnError> {
     use crate::ssr_imports::*;
     use ssr_imports::*;
 
@@ -51,19 +51,20 @@ pub async fn google_sso() -> Result<String, ServerFnError> {
         .map(|_| ())?;
 
     // Send the url to the client.
-    Ok(url)
+    leptos_axum::redirect(&url);
+    Ok(())
 }
 
 #[component]
 pub fn SignIn() -> impl IntoView {
     let g_auth = ServerAction::<GoogleSso>::new();
 
-    Effect::new(move |_| {
-        if let Some(Ok(redirect)) = g_auth.value().get() {
-            leptos::logging::log!("redirecting!");
-            window().location().set_href(&redirect).unwrap();
-        }
-    });
+    // Effect::new(move |_| {
+    //     if let Some(Ok(redirect)) = g_auth.value().get() {
+    //         leptos::logging::log!("redirecting!");
+    //         window().location().set_href(&redirect).unwrap();
+    //     }
+    // });
 
     view! {
         <ActionForm action=g_auth>
@@ -100,6 +101,7 @@ pub async fn handle_g_auth_redirect(
     use crate::ssr_imports::*;
     use ssr_imports::*;
 
+    leptos::logging::log!("handle_g_auth_redirect called!");
     let oauth_client = expect_context::<AppState>().client;
     let pool = pool()?;
     let auth_session = auth()?;
@@ -180,12 +182,27 @@ pub struct OAuthParams {
 
 #[component]
 pub fn HandleGAuth() -> impl IntoView {
+    leptos::logging::log!("HandleGAuth called!");
     let handle_g_auth_redirect = ServerAction::<HandleGAuthRedirect>::new();
 
     let query = use_query::<OAuthParams>();
     let navigate = use_navigate();
     let rw_email = expect_context::<Email>().0;
     let rw_expires_in = expect_context::<ExpiresIn>().0;
+
+    Effect::new(move |_| {
+        if let Ok(OAuthParams { code, state }) = query.get() {
+            leptos::logging::log!("about to redirect...");
+            leptos::logging::log!("{:?} {:?}", code, state);
+            handle_g_auth_redirect.dispatch(HandleGAuthRedirect {
+                provided_csrf: state.unwrap(),
+                code: code.unwrap(),
+            });
+        } else {
+            leptos::logging::log!("error parsing oauth params");
+        }
+    });
+
     Effect::new(move |_| {
         if let Some(Ok((email, expires_in))) =
             handle_g_auth_redirect.value().get()
@@ -196,16 +213,6 @@ pub fn HandleGAuth() -> impl IntoView {
         }
     });
 
-    Effect::new(move |_| {
-        if let Ok(OAuthParams { code, state }) = query.get_untracked() {
-            handle_g_auth_redirect.dispatch(HandleGAuthRedirect {
-                provided_csrf: state.unwrap(),
-                code: code.unwrap(),
-            });
-        } else {
-            leptos::logging::log!("error parsing oauth params");
-        }
-    });
     view! {}
 }
 

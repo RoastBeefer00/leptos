@@ -144,7 +144,7 @@ pub fn App() -> impl IntoView {
                             </Show>
                             }
                         }/>
-                    <Route path=path!("g_auth") view=||view!{<HandleGAuth/>}/>
+                    <Route path=path!("/g_auth") view=||view!{<HandleGAuth/>}/>
                 </Routes>
             </main>
         </Router>
